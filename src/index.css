@@ -1,0 +1,589 @@
+:root {
+  color: #e8eef7;
+  background: #0f1724;
+  font-family: Inter, Segoe UI, system-ui, sans-serif;
+  line-height: 1.5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1a2b45 0%, #0f1724 45%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.login-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.login-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 36, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 2rem;
+  border-radius: 14px;
+  background: rgba(8, 14, 24, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.login-card header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.login-card header p {
+  margin: 0.35rem 0 1.5rem;
+  color: #91a4bf;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login-card label {
+  margin-top: 0.5rem;
+  color: #b8c7db;
+  font-size: 0.9rem;
+}
+
+.login-card input {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #111b2d;
+  color: #f4f7fb;
+}
+
+.login-card input:focus {
+  outline: 2px solid #4f8cff;
+  outline-offset: 1px;
+}
+
+.login-card button[type="submit"] {
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #4f8cff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.message {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.message.error {
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.35);
+  color: #ffb3bd;
+}
+
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1rem;
+  color: #91a4bf;
+}
+
+.loading-spinner__wheel {
+  display: block;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #4f8cff;
+  animation: spin 0.75s linear infinite;
+}
+
+.loading-spinner--sm .loading-spinner__wheel {
+  width: 1rem;
+  height: 1rem;
+}
+
+.loading-spinner--md .loading-spinner__wheel {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.loading-spinner--lg .loading-spinner__wheel {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.loading-spinner__label {
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.loading-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.sidebar-error {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.retry-button {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #e8eef7;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 18, 31, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0;
+  color: #9db0cb;
+  font-size: 0.9rem;
+}
+
+.logout-button {
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #e8eef7;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.app-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: 0;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 14, 24, 0.92);
+  padding: 1rem;
+  overflow: auto;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.meta,
+.empty-tree,
+.hint {
+  color: #91a4bf;
+}
+
+.meta {
+  margin: 0.35rem 0 1rem;
+  font-size: 0.85rem;
+}
+
+.sidebar-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tree-children {
+  margin-left: 0.35rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tree-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1rem 1.2rem 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.folder-row .label {
+  font-weight: 600;
+}
+
+.device-row.selected {
+  background: rgba(79, 140, 255, 0.18);
+  outline: 1px solid rgba(79, 140, 255, 0.45);
+}
+
+.chevron {
+  color: #7f93ad;
+  font-size: 0.8rem;
+}
+
+.chevron.spacer {
+  visibility: hidden;
+}
+
+.device-id {
+  color: #7f93ad;
+  font-size: 0.8rem;
+}
+
+.content-panel {
+  padding: 1.5rem;
+  min-width: 0;
+  overflow: auto;
+}
+
+.device-view__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.device-view__header h2 {
+  margin: 0;
+}
+
+.device-view__error {
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.35);
+  color: #ffb3bd;
+  font-size: 0.9rem;
+}
+
+.device-view__hint {
+  margin: 0;
+  color: #91a4bf;
+  font-size: 0.85rem;
+}
+
+.device-view__hint code {
+  color: #b8c7db;
+}
+
+.device-panel {
+  max-width: 520px;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.device-panel.empty {
+  color: #91a4bf;
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: #7f93ad;
+}
+
+.device-detail {
+  margin: 0.5rem 0 0;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 900px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .app-body {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    max-height: 45vh;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .create-user-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-button {
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(79, 140, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(79, 140, 255, 0.12);
+  color: #e8eef7;
+  cursor: pointer;
+}
+
+.admin-button:hover {
+  background: rgba(79, 140, 255, 0.22);
+}
+
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: auto;
+  background: rgba(8, 14, 24, 0.96);
+  backdrop-filter: blur(6px);
+  padding: 1.5rem;
+}
+
+.admin-panel {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.admin-panel--wide {
+  max-width: 1100px;
+}
+
+.admin-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-panel__header h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.admin-panel .card,
+.admin-panel--wide .card {
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-panel form,
+.create-user-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-panel label,
+.create-user-form label {
+  margin-top: 0.5rem;
+  color: #b8c7db;
+  font-size: 0.9rem;
+}
+
+.admin-panel input,
+.create-user-form input {
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #111b2d;
+  color: #f4f7fb;
+}
+
+.admin-panel button[type="submit"],
+.create-user-form button[type="submit"] {
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #4f8cff;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-button {
+  padding: 0.55rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: transparent;
+  color: #e8eef7;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.page-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 36, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.create-user-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.onboarding-card {
+  max-width: 440px;
+}
+
+.message.success {
+  background: rgba(40, 167, 69, 0.15);
+  border: 1px solid rgba(40, 167, 69, 0.35);
+  color: #b8f0c8;
+}
+
+.folder-row--checkbox {
+  grid-template-columns: auto 1rem 1.2rem 1fr auto;
+}
+
+.folder-expand {
+  display: grid;
+  grid-template-columns: 1rem 1.2rem 1fr;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.folder-checkbox { display: inline-flex; align-items: center; cursor: pointer; }
+.folder-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
+.checkbox-ui {
+  width: 1rem; height: 1rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25);
+  background: #111b2d; display: inline-block;
+}
+.folder-checkbox input:checked + .checkbox-ui {
+  background: #4f8cff; border-color: #4f8cff;
+  box-shadow: inset 0 0 0 2px #0f1724;
+}
+
+.device-row--readonly {
+  cursor: default;
+}
+
+.device-row--readonly:hover {
+  background: transparent;
+}
+
+.placeholder {
+  color: #91a4bf;
+}
+
+.error-banner {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.35);
+  color: #ffb3bd;
+  font-size: 0.9rem;
+}
