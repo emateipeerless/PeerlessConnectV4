@@ -1,0 +1,191 @@
+/* Peerless Connect brand palette */
+:root {
+  --brand-storm: #00313c;
+  --brand-peerless-blue: #0166c0;
+  --brand-fire: #981116;
+  --brand-steam: #eeeeee;
+  --brand-sun: #cf7f00;
+  --brand-spark: #ef9300;
+  --brand-ink: #0d2635;
+
+  /* Status lamp colors — intentionally outside brand neutrals */
+  --status-ok: #2ea84a;
+  --status-ok-glow: rgba(46, 168, 74, 0.55);
+  --status-alarm: #d63b32;
+  --status-alarm-glow: rgba(214, 59, 50, 0.55);
+  --status-off: #5a6a78;
+
+  --topbar-height: 5.25rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --transition-theme: background-color 0.25s ease, color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* ── Dark mode (default) ───────────────────────────────────────────── */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: var(--brand-ink);
+  --color-bg-gradient-start: #0a3040;
+  --color-bg-gradient-end: var(--brand-ink);
+  --color-surface: rgba(0, 49, 60, 0.55);
+  --color-surface-raised: rgba(0, 49, 60, 0.82);
+  --color-surface-card: rgba(0, 49, 60, 0.72);
+  --color-surface-input: #002a34;
+  --color-surface-muted: rgba(13, 38, 53, 0.65);
+  --color-surface-hover: rgba(238, 238, 238, 0.06);
+  --color-surface-selected: rgba(1, 102, 192, 0.2);
+
+  --color-border: rgba(238, 238, 238, 0.1);
+  --color-border-strong: rgba(238, 238, 238, 0.18);
+  --color-border-accent: rgba(1, 102, 192, 0.45);
+
+  --color-text: var(--brand-steam);
+  --color-text-muted: #a8b8c4;
+  --color-text-subtle: #7a8f9c;
+  --color-text-inverse: var(--brand-ink);
+
+  --color-primary: var(--brand-peerless-blue);
+  --color-primary-hover: #0280e8;
+  --color-primary-muted: rgba(1, 102, 192, 0.18);
+  --color-accent: var(--brand-spark);
+  --color-accent-warm: var(--brand-sun);
+
+  --color-danger: var(--brand-fire);
+  --color-danger-text: #f5a8a8;
+  --color-danger-bg: rgba(152, 17, 22, 0.2);
+  --color-danger-border: rgba(152, 17, 22, 0.45);
+
+  --color-success-text: #9ee0b0;
+  --color-success-bg: rgba(46, 168, 74, 0.15);
+  --color-success-border: rgba(46, 168, 74, 0.4);
+
+  --color-topbar-bg: rgba(0, 49, 60, 0.92);
+  --color-topbar-border: rgba(238, 238, 238, 0.08);
+  --color-focus-ring: var(--brand-spark);
+  --color-overlay: rgba(13, 38, 53, 0.78);
+  --color-shadow: rgba(0, 0, 0, 0.35);
+
+  --color-panel-bg: rgba(0, 49, 60, 0.65);
+  --color-panel-border: rgba(238, 238, 238, 0.1);
+  --color-metric-bg: rgba(13, 38, 53, 0.75);
+  --color-metric-border: rgba(238, 238, 238, 0.08);
+
+  --color-hero-main-start: rgba(1, 102, 192, 0.22);
+  --color-hero-main-end: rgba(0, 49, 60, 0.85);
+  --color-hero-main-border: rgba(1, 102, 192, 0.55);
+  --color-hero-jockey-start: rgba(46, 168, 74, 0.12);
+  --color-hero-jockey-end: rgba(0, 49, 60, 0.85);
+  --color-hero-jockey-border: rgba(46, 168, 74, 0.4);
+  --color-hero-low-start: rgba(152, 17, 22, 0.25);
+  --color-hero-low-end: rgba(13, 38, 53, 0.9);
+  --color-hero-low-border: rgba(152, 17, 22, 0.65);
+  --color-hero-label: #8ec4ef;
+  --color-hero-low-label: #f0a8a0;
+
+  --color-pump-main-accent: var(--brand-peerless-blue);
+  --color-pump-jockey-accent: #3d8a52;
+  --color-offline-overlay: rgba(13, 38, 53, 0.58);
+  --color-offline-border: rgba(207, 127, 0, 0.75);
+  --color-offline-text: var(--brand-spark);
+
+  --color-switch-inactive: rgba(13, 38, 53, 0.8);
+  --color-switch-active-auto: rgba(46, 168, 74, 0.2);
+  --color-switch-active-manual: rgba(207, 127, 0, 0.2);
+  --color-switch-active-off: rgba(122, 143, 156, 0.25);
+
+  --color-live: var(--status-ok);
+  --color-live-border: rgba(46, 168, 74, 0.45);
+  --color-pulse-border: rgba(1, 102, 192, 0.55);
+  --color-pulse-text: #8ec4ef;
+
+  --color-toggle-track: rgba(13, 38, 53, 0.9);
+  --color-toggle-thumb: var(--brand-steam);
+  --color-toggle-active: var(--brand-peerless-blue);
+}
+
+/* ── Light mode ────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-bg: var(--brand-steam);
+  --color-bg-gradient-start: #f8f9fa;
+  --color-bg-gradient-end: #e4e8eb;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-card: #ffffff;
+  --color-surface-input: #ffffff;
+  --color-surface-muted: #f4f6f8;
+  --color-surface-hover: rgba(1, 102, 192, 0.06);
+  --color-surface-selected: rgba(1, 102, 192, 0.12);
+
+  --color-border: rgba(13, 38, 53, 0.12);
+  --color-border-strong: rgba(13, 38, 53, 0.2);
+  --color-border-accent: rgba(1, 102, 192, 0.35);
+
+  --color-text: var(--brand-ink);
+  --color-text-muted: #4a6270;
+  --color-text-subtle: #6b828f;
+  --color-text-inverse: var(--brand-steam);
+
+  --color-primary: var(--brand-peerless-blue);
+  --color-primary-hover: #014fa0;
+  --color-primary-muted: rgba(1, 102, 192, 0.1);
+  --color-accent: var(--brand-spark);
+  --color-accent-warm: var(--brand-sun);
+
+  --color-danger: var(--brand-fire);
+  --color-danger-text: #7a0e12;
+  --color-danger-bg: rgba(152, 17, 22, 0.08);
+  --color-danger-border: rgba(152, 17, 22, 0.3);
+
+  --color-success-text: #1a6b32;
+  --color-success-bg: rgba(46, 168, 74, 0.1);
+  --color-success-border: rgba(46, 168, 74, 0.35);
+
+  --color-topbar-bg: rgba(255, 255, 255, 0.94);
+  --color-topbar-border: rgba(13, 38, 53, 0.1);
+  --color-focus-ring: var(--brand-peerless-blue);
+  --color-overlay: rgba(238, 238, 238, 0.82);
+  --color-shadow: rgba(13, 38, 53, 0.12);
+
+  --color-panel-bg: #ffffff;
+  --color-panel-border: rgba(13, 38, 53, 0.1);
+  --color-metric-bg: #f6f8fa;
+  --color-metric-border: rgba(13, 38, 53, 0.08);
+
+  --color-hero-main-start: rgba(1, 102, 192, 0.08);
+  --color-hero-main-end: #ffffff;
+  --color-hero-main-border: rgba(1, 102, 192, 0.35);
+  --color-hero-jockey-start: rgba(46, 168, 74, 0.06);
+  --color-hero-jockey-end: #ffffff;
+  --color-hero-jockey-border: rgba(46, 168, 74, 0.3);
+  --color-hero-low-start: rgba(152, 17, 22, 0.06);
+  --color-hero-low-end: #ffffff;
+  --color-hero-low-border: rgba(152, 17, 22, 0.4);
+  --color-hero-label: var(--brand-peerless-blue);
+  --color-hero-low-label: var(--brand-fire);
+
+  --color-pump-main-accent: var(--brand-peerless-blue);
+  --color-pump-jockey-accent: #2d7a42;
+  --color-offline-overlay: rgba(238, 238, 238, 0.72);
+  --color-offline-border: rgba(207, 127, 0, 0.65);
+  --color-offline-text: var(--brand-sun);
+
+  --color-switch-inactive: #f0f3f5;
+  --color-switch-active-auto: rgba(46, 168, 74, 0.12);
+  --color-switch-active-manual: rgba(207, 127, 0, 0.12);
+  --color-switch-active-off: rgba(107, 130, 143, 0.15);
+
+  --color-live: #1a7a38;
+  --color-live-border: rgba(46, 168, 74, 0.4);
+  --color-pulse-border: rgba(1, 102, 192, 0.4);
+  --color-pulse-text: var(--brand-peerless-blue);
+
+  --color-toggle-track: #e8ecef;
+  --color-toggle-thumb: #ffffff;
+  --color-toggle-active: var(--brand-peerless-blue);
+}

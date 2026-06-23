@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { BrandLogo } from "./BrandLogo";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface OnboardingPageProps {
@@ -42,7 +43,8 @@ export function OnboardingPage({ email, submitting, error, onSubmit }: Onboardin
         </div>
       )}
       <div className="login-card onboarding-card">
-        <header>
+        <header className="login-card__header">
+          <BrandLogo variant="card" />
           <h1>Complete your account</h1>
           <p>Set up your profile for {email}</p>
         </header>

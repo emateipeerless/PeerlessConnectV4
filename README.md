@@ -12,15 +12,16 @@ This document describes how the **Peerless Connect** IoT fire pump monitoring pl
 4. [AWS Lambda Functions](#aws-lambda-functions)
 5. [API Gateway & Frontend Configuration](#api-gateway--frontend-configuration)
 6. [Frontend Application](#frontend-application)
-7. [Authentication & User Lifecycle](#authentication--user-lifecycle)
-8. [Device Navigation (Folder Tree)](#device-navigation-folder-tree)
-9. [Live Device Data Pipeline](#live-device-data-pipeline)
-10. [Controller Profiles & Register Decoding](#controller-profiles--register-decoding)
-11. [Dashboard UI](#dashboard-ui)
-12. [Offline Detection](#offline-detection)
-13. [Project Structure](#project-structure)
-14. [Running Locally](#running-locally)
-15. [Known Dependencies Outside This Repo](#known-dependencies-outside-this-repo)
+7. [Theming (Light / Dark Mode)](#theming-light--dark-mode)
+8. [Authentication & User Lifecycle](#authentication--user-lifecycle)
+9. [Device Navigation (Folder Tree)](#device-navigation-folder-tree)
+10. [Live Device Data Pipeline](#live-device-data-pipeline)
+11. [Controller Profiles & Register Decoding](#controller-profiles--register-decoding)
+12. [Dashboard UI](#dashboard-ui)
+13. [Offline Detection](#offline-detection)
+14. [Project Structure](#project-structure)
+15. [Running Locally](#running-locally)
+16. [Known Dependencies Outside This Repo](#known-dependencies-outside-this-repo)
 
 ---
 
@@ -283,7 +284,7 @@ All auth/admin calls use `POST` with JSON bodies via `src/api/client.ts`. The pa
 
 **Stack:** React 18, TypeScript, Vite  
 **Package name:** `peerless-connect-standard`  
-**Entry:** `src/main.tsx` → `src/App.tsx`
+**Entry:** `src/main.tsx` → `ThemeProvider` + `GlobalTopBar` + `src/App.tsx`
 
 ### Application states
 
@@ -299,7 +300,7 @@ Logged in, onboarded → Main shell (sidebar + device panel + admin overlay)
 
 | Area | Component | Function |
 |------|-----------|----------|
-| Header | `App.tsx` | Title, signed-in user, Admin button, Sign out |
+| Global top bar | `AppTopBar` | Shown only after login — logo, signed-in user, theme toggle, Admin, Sign out |
 | Left sidebar | `SidebarTree` | Nested folder/device tree from `GetUserStruct` |
 | Main content | `DeviceView` | Fire pump dashboard for selected device |
 | Admin overlay | `CreatorLoginPage` → `CreateUserPage` | Provision new users |
@@ -313,6 +314,44 @@ Thin wrapper around `fetch`:
 - `completeOnboarding()` — first-time profile
 
 Handles API Gateway responses that may wrap JSON in a `body` string field.
+
+---
+
+## Theming (Light / Dark Mode)
+
+The UI uses approved Peerless brand colors with a user-selectable **light** or **dark** theme. Before sign-in, the app follows the **OS system theme** only (no top bar, no toggle). After login, a single **AppTopBar** provides the theme toggle plus Admin and Sign out; the user’s theme choice is saved to `localStorage`.
+
+**Brand logos** (`src/logos/RedLogoNB.png` for light mode, `src/logos/WhiteLogoNB.png` for dark mode) appear large on the login/onboarding cards and in the top bar on the left (logo and “Signed in as …” side by side). `BrandLogo` switches automatically with the active theme.
+
+### Brand palette
+
+| Name | Hex | Typical use |
+|------|-----|-------------|
+| Storm | `#00313C` | Dark surfaces, sidebar depth |
+| Peerless Blue | `#0166C0` | Primary actions, links, main pump accents |
+| Fire | `#981116` | Errors, low-pressure alarm emphasis |
+| Steam | `#EEEEEE` | Light mode background, dark mode text |
+| Sun | `#CF7F00` | Manual switch state, offline warning |
+| Spark | `#EF9300` | Accent gradient, focus highlights |
+| Ink | `#0D2635` | Light mode text, dark mode background |
+
+Status lamps on the device dashboard intentionally use standard **green** (`#2EA84A`) and **red** (`#D63B32`) for ok/alarm states so they remain instantly recognizable in either theme.
+
+### Implementation
+
+| File | Role |
+|------|------|
+| `src/theme/theme.css` | CSS custom properties for `[data-theme="light"]` and `[data-theme="dark"]` |
+| `src/theme/ThemeContext.tsx` | React context; persists choice to `localStorage` key `peerless-connect-theme` |
+| `src/components/AppTopBar.tsx` | Unified fixed top bar (theme toggle + auth actions) |
+| `src/components/BrandLogo.tsx` | Theme-aware logo (`RedLogoNB` / `WhiteLogoNB`) |
+| `src/components/ThemeToggle.tsx` | Segmented Light / Dark control |
+| `src/logos/` | Brand logo assets (red = light, white = dark) |
+| `src/index.css` | App shell, auth, sidebar — uses theme variables |
+| `src/device-dashboard.css` | Pump dashboard panels — uses theme variables |
+| `index.html` | Inline script applies saved theme before React loads (prevents flash) |
+
+On first visit before login, the theme follows `prefers-color-scheme`. After login, the saved choice in `localStorage` (`peerless-connect-theme`) is used and the toggle is available.
 
 ---
 
@@ -468,7 +507,7 @@ Registers are looked up from **trending first, then historical** (`getMergedRegi
 - Switch position + operating stats (pressure settings, run hours, starts).
 - Status lamp panel.
 
-Each section shows **Trend** and **Hist** timestamp pills from the latest packet. Styling is in `src/device-dashboard.css` and `src/index.css`.
+Each section shows **Trend** and **Hist** timestamp pills from the latest packet. Styling is in `src/device-dashboard.css`, `src/index.css`, and `src/theme/theme.css` (brand light/dark themes).
 
 ---
 
@@ -496,14 +535,21 @@ This overlay appears per pump section (main and jockey independently). Only **tr
 │   └── CompleteUserOnboarding.py  # Profile + password setup
 │
 └── connect-standard-frontend/
+    ├── README.md                  # This document — keep updated with code changes
     ├── .env                       # API Gateway URLs (VITE_*)
     ├── src/
     │   ├── App.tsx                # Root app shell and routing logic
     │   ├── api/client.ts          # Lambda API wrappers
     │   ├── config.ts              # Poll interval, packet API base
     │   ├── config/devices.ts      # Device profiles and URL builder
+    │   ├── theme/
+    │   │   ├── theme.css          # Brand color CSS variables (light/dark)
+    │   │   └── ThemeContext.tsx   # Theme state + localStorage
     │   ├── hooks/useDevicePacket.ts
     │   ├── components/
+    │   │   ├── AppTopBar.tsx        # Unified top bar
+    │   │   ├── BrandLogo.tsx
+    │   │   ├── ThemeToggle.tsx
     │   │   ├── FirePumpDashboard.tsx
     │   │   ├── DeviceView.tsx
     │   │   ├── SidebarTree.tsx

@@ -5,6 +5,7 @@ import {
   fetchUserView,
   login,
 } from "./api/client";
+import { AppTopBar } from "./components/AppTopBar";
 import { CreateUserPage } from "./components/admin/CreateUserPage";
 import { CreatorLoginPage } from "./components/admin/CreatorLoginPage";
 import { DeviceView } from "./components/DeviceView";
@@ -12,6 +13,7 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { LoginForm } from "./components/LoginForm";
 import { OnboardingPage } from "./components/OnboardingPage";
 import { SidebarTree } from "./components/SidebarTree";
+import { useTheme } from "./theme/ThemeContext";
 import type { UserViewResponse } from "./types";
 
 type AdminScreen = "login" | "create";
@@ -37,6 +39,13 @@ export default function App() {
   const [adminSubmitLoading, setAdminSubmitLoading] = useState(false);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminSuccess, setAdminSuccess] = useState<string | null>(null);
+
+  const isMainApp = Boolean(username && !needsOnboarding);
+  const { setCustomizationEnabled } = useTheme();
+
+  useEffect(() => {
+    setCustomizationEnabled(isMainApp);
+  }, [isMainApp, setCustomizationEnabled]);
 
   useEffect(() => {
     if (!username || needsOnboarding) {
@@ -206,108 +215,95 @@ export default function App() {
     }
   }
 
-  if (!username) {
-    return <LoginForm loading={loginLoading} error={loginError} onLogin={handleLogin} />;
-  }
-
-  if (needsOnboarding) {
-    return (
-      <OnboardingPage
-        email={username}
-        submitting={onboardingLoading}
-        error={onboardingError}
-        onSubmit={handleOnboarding}
-      />
-    );
-  }
-
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div>
-          <h1>Peerless Connect</h1>
-          <p className="subtitle">Signed in as {username}</p>
-        </div>
-        <div className="app-header__actions">
-          <button type="button" className="admin-button" onClick={openAdminPanel}>
-            Admin
-          </button>
-          <button type="button" className="logout-button" onClick={handleLogout}>
-            Sign out
-          </button>
-        </div>
-      </header>
+    <>
+      {isMainApp && username && (
+        <AppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
+      )}
 
-      <div className="app-body">
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <h2>Folder Structure</h2>
-            {viewData && <p className="meta">View {viewData.viewId}</p>}
+      {!username ? (
+        <LoginForm loading={loginLoading} error={loginError} onLogin={handleLogin} />
+      ) : needsOnboarding ? (
+        <OnboardingPage
+          email={username}
+          submitting={onboardingLoading}
+          error={onboardingError}
+          onSubmit={handleOnboarding}
+        />
+      ) : (
+        <div className="app-shell">
+          <div className="app-body">
+            <aside className="sidebar">
+              <div className="sidebar-header">
+                <h2>Folder Structure</h2>
+                {viewData && <p className="meta">View {viewData.viewId}</p>}
+              </div>
+
+              {viewLoading && <LoadingSpinner label="Loading your folders..." />}
+
+              {viewError && !viewLoading && (
+                <div className="sidebar-error">
+                  <p className="error-banner">{viewError}</p>
+                  <button type="button" className="retry-button" onClick={handleRetryView}>
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {viewData && !viewLoading && (
+                <SidebarTree
+                  tree={viewData.tree}
+                  selectedDeviceId={selectedDeviceId}
+                  onSelectDevice={handleSelectDevice}
+                />
+              )}
+            </aside>
+
+            <main className="content-panel">
+              {viewLoading ? (
+                <section className="device-panel empty loading-panel">
+                  <LoadingSpinner label="Loading your view..." size="lg" />
+                </section>
+              ) : selectedDeviceId && selectedDeviceName ? (
+                <DeviceView deviceId={selectedDeviceId} deviceName={selectedDeviceName} />
+              ) : (
+                <section className="device-panel empty">
+                  <h2>No device selected</h2>
+                  <p>
+                    {viewData
+                      ? "Expand folders in the sidebar and click a device to open its dashboard."
+                      : "Your folder structure will appear in the sidebar once loading completes."}
+                  </p>
+                </section>
+              )}
+            </main>
           </div>
 
-          {viewLoading && <LoadingSpinner label="Loading your folders..." />}
-
-          {viewError && !viewLoading && (
-            <div className="sidebar-error">
-              <p className="error-banner">{viewError}</p>
-              <button type="button" className="retry-button" onClick={handleRetryView}>
-                Retry
-              </button>
+          {adminOpen && (
+            <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Admin panel">
+              {adminScreen === "login" || !creatorViewData || !creatorEmail ? (
+                <CreatorLoginPage
+                  loading={adminLoginLoading}
+                  error={adminError}
+                  onLogin={handleCreatorLogin}
+                  onClose={closeAdminPanel}
+                />
+              ) : (
+                <CreateUserPage
+                  creatorEmail={creatorEmail}
+                  tree={creatorViewData.tree}
+                  viewId={creatorViewData.viewId}
+                  submitting={adminSubmitLoading}
+                  error={adminError}
+                  success={adminSuccess}
+                  onSubmit={handleCreateUser}
+                  onClose={closeAdminPanel}
+                />
+              )}
             </div>
-          )}
-
-          {viewData && !viewLoading && (
-            <SidebarTree
-              tree={viewData.tree}
-              selectedDeviceId={selectedDeviceId}
-              onSelectDevice={handleSelectDevice}
-            />
-          )}
-        </aside>
-
-        <main className="content-panel">
-          {viewLoading ? (
-            <section className="device-panel empty loading-panel">
-              <LoadingSpinner label="Loading your view..." size="lg" />
-            </section>
-          ) : selectedDeviceId && selectedDeviceName ? (
-            <DeviceView deviceId={selectedDeviceId} deviceName={selectedDeviceName} />
-          ) : (
-            <section className="device-panel empty">
-              <h2>No device selected</h2>
-              <p>
-                {viewData
-                  ? "Expand folders in the sidebar and click a device to open its dashboard."
-                  : "Your folder structure will appear in the sidebar once loading completes."}
-              </p>
-            </section>
-          )}
-        </main>
-      </div>
-
-      {adminOpen && (
-        <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Admin panel">
-          {adminScreen === "login" || !creatorViewData || !creatorEmail ? (
-            <CreatorLoginPage
-              loading={adminLoginLoading}
-              error={adminError}
-              onLogin={handleCreatorLogin}
-              onClose={closeAdminPanel}
-            />
-          ) : (
-            <CreateUserPage
-              creatorEmail={creatorEmail}
-              tree={creatorViewData.tree}
-              viewId={creatorViewData.viewId}
-              submitting={adminSubmitLoading}
-              error={adminError}
-              success={adminSuccess}
-              onSubmit={handleCreateUser}
-              onClose={closeAdminPanel}
-            />
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

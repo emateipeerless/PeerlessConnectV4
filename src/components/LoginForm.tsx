@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { BrandLogo } from "./BrandLogo";
 import { LoadingSpinner } from "./LoadingSpinner";
 
 interface LoginFormProps {
@@ -29,8 +30,8 @@ export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
       )}
 
       <div className="login-card">
-        <header>
-          <h1>Peerless Connect</h1>
+        <header className="login-card__header">
+          <BrandLogo variant="login" />
           <p>Sign in to view your devices</p>
         </header>
 
