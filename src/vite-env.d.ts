@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_SSO_ENABLED?: string;
   readonly VITE_AZURE_CLIENT_ID?: string;
   readonly VITE_AZURE_TENANT_ID?: string;
+  /** MSAL authority segment: common | organizations | consumers | tenant-guid */
+  readonly VITE_AZURE_AUTHORITY?: string;
   readonly VITE_AZURE_REDIRECT_URI?: string;
   readonly VITE_SSO_LOGIN_API_URL?: string;
   readonly VITE_CREATE_SSO_USER_API_URL?: string;

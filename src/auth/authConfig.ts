@@ -1,14 +1,13 @@
 import { LogLevel, type Configuration } from "@azure/msal-browser";
-import { getAzureClientId, getAzureRedirectUri, getAzureTenantId } from "../config/sso";
+import { getAzureAuthority, getAzureClientId, getAzureRedirectUri } from "../config/sso";
 
 const clientId = getAzureClientId();
-const tenantId = getAzureTenantId();
 const redirectUri = getAzureRedirectUri();
 
 export const msalConfig: Configuration = {
   auth: {
     clientId: clientId || "YOUR_CLIENT_ID",
-    authority: `https://login.microsoftonline.com/${tenantId || "YOUR_TENANT_ID"}`,
+    authority: getAzureAuthority(),
     redirectUri,
     postLogoutRedirectUri: redirectUri,
   },
