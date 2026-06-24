@@ -6,6 +6,13 @@ interface ImportMetaEnv {
   readonly VITE_CREATE_USER_API_URL: string;
   readonly VITE_ONBOARDING_API_URL: string;
   readonly VITE_PACKET_API_URL?: string;
+  /** Set to "true" to enable Microsoft Entra SSO (easy revert: set false) */
+  readonly VITE_SSO_ENABLED?: string;
+  readonly VITE_AZURE_CLIENT_ID?: string;
+  readonly VITE_AZURE_TENANT_ID?: string;
+  readonly VITE_AZURE_REDIRECT_URI?: string;
+  readonly VITE_SSO_LOGIN_API_URL?: string;
+  readonly VITE_CREATE_SSO_USER_API_URL?: string;
 }
 
 interface ImportMeta {

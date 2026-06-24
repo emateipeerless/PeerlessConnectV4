@@ -1,6 +1,6 @@
 # Peerless Connect — System Overview
 
-This document describes how the **Peerless Connect** IoT fire pump monitoring platform works as implemented in this workspace. It covers the full path from the edge device through cloud storage to the React frontend, including all five AWS Lambda functions and how they are wired together.
+This document describes how the **Peerless Connect** IoT fire pump monitoring platform works as implemented in this workspace. It covers the full path from the edge device through cloud storage to the React frontend, including all **seven** AWS Lambda functions and how they are wired together.
 
 ---
 
@@ -48,12 +48,14 @@ This document describes how the **Peerless Connect** IoT fire pump monitoring pl
 │    ├── POST /getStructV2           → GetUserStruct                           │
 │    ├── POST /createstandard        → CreateStandardUser                      │
 │    ├── POST /completeonboarding    → CompleteUserOnboarding                  │
+│    ├── POST /createsso             → CreateSsoUser (SSO provisioning)        │
+│    ├── POST /ssologin              → SsoUserLogin (SSO sign-in completion)   │
 │    └── GET  /latest?deviceid=N     → GetLatestFrame                          │
 └────────────────────────┼────────────────────────────────────────────────────┘
                          ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  connect-standard-frontend (React + Vite)                                    │
-│  Login → Onboarding → Folder sidebar → Device dashboard (7s polling)         │
+│  Login (password or Microsoft Entra SSO) → Onboarding → Sidebar → Dashboard  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -112,7 +114,7 @@ This table drives what `GetLatestFrame` queries — the Lambda does not hard-cod
 
 | Table | Purpose |
 |-------|---------|
-| `users.userlogin` | `username` (email) + bcrypt password hash |
+| `users.userlogin` | `username` (email) + password: bcrypt hash (standard users) or `NULL` until first SSO sign-in, then Entra object id |
 | `users.userinfo` | Profile: first name, last name, phone, dates (created after onboarding) |
 | `users.userviewpage` | Maps `username` → `viewid` (folder root IDs the user can see) |
 
@@ -181,8 +183,9 @@ All Lambda source files live in `Lambdas/`.
 
 1. Look up `users.userlogin` by username.
 2. In the same query, check whether a row exists in `users.userinfo` (`has_profile`).
-3. Verify password with **bcrypt**.
-4. Return:
+3. If `password IS NULL`, reject (SSO-provisioned users must use Microsoft Entra).
+4. Verify password with **bcrypt**.
+5. Return:
    - `authenticated: true`
    - `email` (username)
    - `needsOnboarding: true` if no `userinfo` row exists yet
@@ -262,6 +265,45 @@ After success, the frontend sets `needsOnboarding = false` and loads the folder 
 
 ---
 
+### 6. `CreateSsoUser.py` — SSO user provisioning (Microsoft Entra)
+
+**API:** `POST /createsso`  
+**Body:** `{ "email": "new@example.com", "folderNames": ["Region East", "Site 42"] }`
+
+**Flow:**
+
+1. Resolve folder names to folder IDs (same as `CreateStandardUser`).
+2. Insert into `users.userlogin` with `password = NULL` (no bcrypt hash, no temp password).
+3. Insert `users.userviewpage` rows for each selected folder.
+4. **No** welcome email is sent.
+
+**Used by:** Admin panel when **SSO user** is selected (toggle on create-user screen).
+
+**Revert:** Set `VITE_SSO_ENABLED=false` in the frontend `.env` — standard-user flow is unchanged.
+
+---
+
+### 7. `SsoUserLogin.py` — Microsoft Entra sign-in completion
+
+**API:** `POST /ssologin`  
+**Body:** `{ "email", "userKey", "firstName", "lastName", "phone" }`
+
+The browser authenticates with Entra via MSAL; the frontend loads profile from **Microsoft Graph**, then this Lambda validates provisioning and completes first-time setup.
+
+**Flow:**
+
+1. Look up `users.userlogin` by email. If missing → **401** (user not provisioned).
+2. If `password IS NULL` (first SSO sign-in):
+   - Store Entra object id (`userKey` from Graph `id`) as plain text in `password`.
+   - Insert profile into `users.userinfo` (name, phone, email from Graph).
+3. If `users.userinfo` already exists → verify `userKey` matches stored password → proceed.
+
+SSO users never use `StandardUserLogin` or `CompleteUserOnboarding` — profile is created on first Entra sign-in.
+
+**Environment variables:** Same DB vars as `StandardUserLogin`; optional `NORMALIZE_USERNAME=true` (default).
+
+---
+
 ## API Gateway & Frontend Configuration
 
 The React app reads API endpoints from `connect-standard-frontend/.env`:
@@ -272,29 +314,65 @@ The React app reads API endpoints from `connect-standard-frontend/.env`:
 | `VITE_VIEW_API_URL` | `GetUserStruct` → `/getStructV2` |
 | `VITE_CREATE_USER_API_URL` | `CreateStandardUser` → `/createstandard` |
 | `VITE_ONBOARDING_API_URL` | `CompleteUserOnboarding` → `/completeonboarding` |
+| `VITE_SSO_LOGIN_API_URL` | `SsoUserLogin` → `/ssologin` (when SSO enabled) |
+| `VITE_CREATE_SSO_USER_API_URL` | `CreateSsoUser` → `/createsso` (when SSO enabled) |
 | `VITE_PACKET_API_URL` | `GetLatestFrame` → `/latest?deviceid=...` |
+| `VITE_SSO_ENABLED` | `"true"` to show Microsoft sign-in and SSO admin toggle |
+| `VITE_AZURE_CLIENT_ID` | Entra app registration client ID |
+| `VITE_AZURE_TENANT_ID` | Entra tenant ID |
+| `VITE_AZURE_REDIRECT_URI` | SPA redirect URI — same origin as the app (e.g. `http://localhost:5178`) |
 
 All auth/admin calls use `POST` with JSON bodies via `src/api/client.ts`. The packet API uses `GET` with `deviceid` as a query parameter. The frontend replaces or appends `deviceid` dynamically when a user selects a device (`buildPacketApiUrl` in `src/config/devices.ts`).
 
 **Refresh interval:** `PACKET_REFRESH_MS = 7000` (7 seconds) in `src/config.ts`.
 
+### Microsoft Entra (SSO) setup
+
+1. Register a **Single-page application** in Microsoft Entra.
+2. Add redirect URI: `http://localhost:5178` (must match `VITE_AZURE_REDIRECT_URI` and the Vite dev port in `vite.config.ts`).
+3. Grant delegated permission **Microsoft Graph → User.Read**.
+4. Set `VITE_SSO_ENABLED=true` and Azure values in `.env` (see `.env.example`).
+5. Deploy `CreateSsoUser` and `SsoUserLogin` Lambdas to API Gateway (`/createsso`, `/ssologin`).
+
+**Disable SSO:** Set `VITE_SSO_ENABLED=false` — standard password login and admin flows are unchanged.
+
 ---
 
 ## Frontend Application
 
-**Stack:** React 18, TypeScript, Vite  
+**Stack:** React 18, TypeScript, Vite, `@azure/msal-browser`, `@azure/msal-react`  
 **Package name:** `peerless-connect-standard`  
-**Entry:** `src/main.tsx` → `ThemeProvider` + `GlobalTopBar` + `src/App.tsx`
+**Entry:** `src/main.tsx` → `MsalProvider` (when SSO enabled) → `ThemeProvider` → `src/App.tsx`  
+**Dev server port:** `5178` (`vite.config.ts`)
 
 ### Application states
 
 `App.tsx` drives a simple state machine:
 
 ```
-Not logged in        → LoginForm
-Logged in, needs onboarding → OnboardingPage
-Logged in, onboarded → Main shell (sidebar + device panel + admin overlay)
+Not logged in                    → LoginForm (password and/or Microsoft)
+Logged in, needs onboarding      → OnboardingPage (standard users only)
+Logged in, onboarded             → Main shell (sidebar + device panel + admin overlay)
 ```
+
+SSO users skip `OnboardingPage` — profile is created on first sign-in via `SsoUserLogin`.
+
+### Microsoft Entra SSO (frontend)
+
+MSAL uses a **full-page redirect** back to the same app origin (not a separate redirect page):
+
+1. `main.tsx` — `initialize()` → `handleRedirectPromise()` → `setActiveAccount()` before React renders.
+2. `MicrosoftLoginButton` — calls `loginRedirect` with `User.Read` scope.
+3. `SsoBackendLogin` — when MSAL reports authenticated, fetches profile from Graph, calls `/ssologin`, sets app `username` or shows error.
+4. `fetchMicrosoftProfile.ts` — `acquireTokenSilent` + `GET https://graph.microsoft.com/v1.0/me`.
+
+| File | Role |
+|------|------|
+| `src/auth/authConfig.ts` | MSAL `Configuration` and `loginRequest` |
+| `src/config/sso.ts` | `VITE_SSO_ENABLED` feature flag and Azure env helpers |
+| `src/auth/SsoBackendLogin.tsx` | Completes backend login after Entra redirect |
+| `src/auth/fetchMicrosoftProfile.ts` | Microsoft Graph profile for `/ssologin` payload |
+| `src/components/MicrosoftLoginButton.tsx` | Sign in with Microsoft button |
 
 ### Main shell layout
 
@@ -303,15 +381,17 @@ Logged in, onboarded → Main shell (sidebar + device panel + admin overlay)
 | Global top bar | `AppTopBar` | Shown only after login — logo, signed-in user, theme toggle, Admin, Sign out |
 | Left sidebar | `SidebarTree` | Nested folder/device tree from `GetUserStruct` |
 | Main content | `DeviceView` | Fire pump dashboard for selected device |
-| Admin overlay | `CreatorLoginPage` → `CreateUserPage` | Provision new users |
+| Admin overlay | `CreatorLoginPage` → `CreateUserPage` | Provision standard or SSO users (folder toggle) |
 
 ### API client (`src/api/client.ts`)
 
 Thin wrapper around `fetch`:
-- `login()` — authenticate
+- `login()` — standard password authenticate
+- `ssoLogin()` — complete SSO sign-in after Entra (`/ssologin`)
 - `fetchUserView()` — load folder tree
-- `createStandardUser()` — admin provisioning
-- `completeOnboarding()` — first-time profile
+- `createStandardUser()` — admin standard user provisioning
+- `createSsoUser()` — admin SSO user provisioning (no email)
+- `completeOnboarding()` — first-time standard user profile
 
 Handles API Gateway responses that may wrap JSON in a `body` string field.
 
@@ -385,9 +465,41 @@ On first visit before login, the theme follows `prefers-color-scheme`. After log
                                         └─────────────────┘
 ```
 
-**Admin flow:** Any signed-in user can open **Admin**. They re-authenticate (creator login), which loads *their* folder tree. They pick folders to grant the new user and submit an email. The new user only sees devices under those folder roots.
+**Admin flow:** Any signed-in user can open **Admin**. They re-authenticate (creator login), which loads *their* folder tree. They pick folders to grant the new user and submit an email. Choose **Standard user** (temp password email) or **SSO user** (Microsoft Entra sign-in, no email). The new user only sees devices under those folder roots.
 
-**Security note:** The current frontend does not persist sessions in localStorage or use JWT cookies — login state lives in React memory only. Refreshing the page returns to the login screen. API endpoints are called without Authorization headers; access control is enforced by knowing the username for view structure and by device visibility in the folder tree.
+### SSO flow (Microsoft Entra)
+
+```
+┌──────────────┐   NULL password    ┌─────────────────┐
+│ Admin creates│ ────────────────►  │ users.userlogin │
+│ SSO user     │   + userviewpage   │ + userviewpage  │
+└──────────────┘                    └────────┬────────┘
+                                             │
+                                             ▼
+                                    ┌─────────────────┐
+                                    │ Sign in with      │
+                                    │ Microsoft (MSAL   │
+                                    │ loginRedirect)    │
+                                    └────────┬────────┘
+                                             │
+                         not in userlogin    │  password NULL
+                              ▼              ▼
+                     ┌──────────────┐  ┌─────────────────┐
+                     │ Error on     │  │ Graph profile + │
+                     │ login screen │  │ SsoUserLogin:   │
+                     └──────────────┘  │ store oid,      │
+                                       │ insert userinfo │
+                                       └────────┬────────┘
+                                                │
+                                                ▼
+                                       ┌─────────────────┐
+                                       │ Main app        │
+                                       └─────────────────┘
+```
+
+**Feature flag:** `VITE_SSO_ENABLED=false` hides SSO UI and skips MSAL — standard login unchanged.
+
+**Security note:** App login state (`username`) lives in React memory only — refreshing returns to the login screen. MSAL session may persist in `sessionStorage` until Entra logout. API endpoints are called without Authorization headers; access control is enforced by username for view structure and folder visibility.
 
 ---
 
@@ -532,30 +644,42 @@ This overlay appears per pump section (main and jockey independently). Only **tr
 │   ├── StandardUserLogin.py       # bcrypt login
 │   ├── GetUserStruct.py           # Folder tree for sidebar
 │   ├── CreateStandardUser.py      # Admin user + SES email
+│   ├── CreateSsoUser.py           # SSO user provisioning (NULL password)
+│   ├── SsoUserLogin.py            # Entra SSO sign-in completion
 │   └── CompleteUserOnboarding.py  # Profile + password setup
 │
 └── connect-standard-frontend/
     ├── README.md                  # This document — keep updated with code changes
-    ├── .env                       # API Gateway URLs (VITE_*)
+    ├── .env.example               # Template for VITE_* variables (copy to .env)
+    ├── .env                       # API Gateway URLs (VITE_*) — not committed
+    ├── vite.config.ts             # Dev server port 5178
     ├── src/
     │   ├── App.tsx                # Root app shell and routing logic
+    │   ├── main.tsx               # MSAL init + React bootstrap
     │   ├── api/client.ts          # Lambda API wrappers
     │   ├── config.ts              # Poll interval, packet API base
-    │   ├── config/devices.ts      # Device profiles and URL builder
+    │   ├── config/
+    │   │   ├── devices.ts         # Device profiles and URL builder
+    │   │   └── sso.ts             # SSO feature flag and Azure env
+    │   ├── auth/
+    │   │   ├── authConfig.ts      # MSAL configuration
+    │   │   ├── SsoBackendLogin.tsx
+    │   │   └── fetchMicrosoftProfile.ts
     │   ├── theme/
     │   │   ├── theme.css          # Brand color CSS variables (light/dark)
     │   │   └── ThemeContext.tsx   # Theme state + localStorage
     │   ├── hooks/useDevicePacket.ts
     │   ├── components/
-    │   │   ├── AppTopBar.tsx        # Unified top bar
+    │   │   ├── AppTopBar.tsx
     │   │   ├── BrandLogo.tsx
     │   │   ├── ThemeToggle.tsx
+    │   │   ├── MicrosoftLoginButton.tsx
     │   │   ├── FirePumpDashboard.tsx
     │   │   ├── DeviceView.tsx
     │   │   ├── SidebarTree.tsx
     │   │   ├── LoginForm.tsx
     │   │   ├── OnboardingPage.tsx
-    │   │   └── admin/             # Creator login + create user
+    │   │   └── admin/             # Creator login + create user (standard/SSO toggle)
     │   ├── lib/
     │   │   ├── normalizePacket.ts
     │   │   ├── decodeDevicePacket.ts
@@ -566,32 +690,6 @@ This overlay appears per pump section (main and jockey independently). Only **tr
     └── package.json
 ```
 
----
-
-## Running Locally
-
-```bash
-cd connect-standard-frontend
-npm install
-npm run dev
-```
-
-1. Copy or edit `.env` with your API Gateway URLs.
-2. Open the Vite dev server URL (typically `http://localhost:5173`).
-3. Sign in with a provisioned user account.
-4. Select a device from the sidebar to view live data.
-
-**Build for production:**
-
-```bash
-npm run build    # outputs to dist/
-npm run preview  # serve production build locally
-```
-
-Without `VITE_PACKET_API_URL`, the dashboard runs in **sample data mode** using bundled example packets.
-
----
-
 ## Known Dependencies Outside This Repo
 
 | Component | Notes |
@@ -600,10 +698,11 @@ Without `VITE_PACKET_API_URL`, the dashboard runs in **sample data mode** using 
 | **MQTT broker & ingestion** | Receives device frames and writes to TimescaleDB |
 | **TimescaleDB schema** | Tables, hypertables, and seed data for devices/folders/controllers |
 | **`ses_mailer` module** | Imported by `CreateStandardUser.py`; sends welcome emails via AWS SES (deployed with the Lambda layer/package) |
+| **Microsoft Entra app registration** | SPA redirect URI, `User.Read` Graph permission for SSO |
 | **API Gateway + Lambda deployment** | Infrastructure wiring (IAM, VPC if applicable, env vars) |
 
 ---
 
 ## Summary
 
-Peerless Connect is an end-to-end IoT monitoring solution for fire pump installations. Edge hardware reads Modbus registers from main and jockey pump controllers and publishes them over cellular MQTT. AWS stores time-series data in TimescaleDB. Five Lambda functions expose login, user management, folder navigation, and latest register snapshots through API Gateway. The React frontend authenticates users, shows a permission-scoped device tree, and renders a live-updating fire pump dashboard with profile-specific register decoding for MK3 Diesel/FCJC and MK3 Electric/FTJP configurations.
+Peerless Connect is an end-to-end IoT monitoring solution for fire pump installations. Edge hardware reads Modbus registers from main and jockey pump controllers and publishes them over cellular MQTT. AWS stores time-series data in TimescaleDB. **Seven** Lambda functions expose login (standard and SSO), user management, folder navigation, and latest register snapshots through API Gateway. The React frontend authenticates users via password or Microsoft Entra SSO, shows a permission-scoped device tree, and renders a live-updating fire pump dashboard with profile-specific register decoding for MK3 Diesel/FCJC and MK3 Electric/FTJP configurations.

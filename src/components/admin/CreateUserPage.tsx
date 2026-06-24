@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
-import type { TreeNode } from "../../types";
+import type { ProvisionUserType, TreeNode } from "../../types";
+import { isSsoConfigured } from "../../config/sso";
 import { FolderCheckboxTree } from "./FolderCheckboxTree";
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -10,7 +11,7 @@ interface CreateUserPageProps {
   submitting: boolean;
   error: string | null;
   success: string | null;
-  onSubmit: (newUserEmail: string, folderNames: string[]) => void;
+  onSubmit: (newUserEmail: string, folderNames: string[], userType: ProvisionUserType) => void;
   onClose: () => void;
 }
 
@@ -26,6 +27,8 @@ export function CreateUserPage({
 }: CreateUserPageProps) {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [userType, setUserType] = useState<ProvisionUserType>("standard");
+  const ssoAvailable = isSsoConfigured();
 
   function handleToggleFolder(name: string, checked: boolean) {
     setSelectedFolders((prev) => {
@@ -40,20 +43,25 @@ export function CreateUserPage({
     event.preventDefault();
     const email = newUserEmail.trim();
     if (!email || selectedFolders.size === 0) return;
-    onSubmit(email, Array.from(selectedFolders));
+    onSubmit(email, Array.from(selectedFolders), userType);
   }
+
+  const isSso = userType === "sso";
 
   return (
     <div className="admin-panel admin-panel--wide">
       {submitting && (
         <div className="page-overlay" aria-busy="true">
-          <LoadingSpinner label="Creating user account..." size="lg" />
+          <LoadingSpinner
+            label={isSso ? "Provisioning SSO user..." : "Creating user account..."}
+            size="lg"
+          />
         </div>
       )}
 
       <header className="admin-panel__header app-header">
         <div>
-          <h1>Create standard user</h1>
+          <h1>Create user</h1>
           <p className="subtitle">Signed in as {creatorEmail} · View {viewId}</p>
         </div>
         <button type="button" className="secondary-button" onClick={onClose}>
@@ -63,6 +71,27 @@ export function CreateUserPage({
 
       <div className="create-user-layout">
         <section className="card create-user-form">
+          {ssoAvailable && (
+            <div className="user-type-toggle" role="group" aria-label="User type">
+              <button
+                type="button"
+                className={userType === "standard" ? "active" : ""}
+                onClick={() => setUserType("standard")}
+                disabled={submitting}
+              >
+                Standard user
+              </button>
+              <button
+                type="button"
+                className={userType === "sso" ? "active" : ""}
+                onClick={() => setUserType("sso")}
+                disabled={submitting}
+              >
+                SSO user
+              </button>
+            </div>
+          )}
+
           <h2>New user email</h2>
           <form onSubmit={handleSubmit}>
             <label htmlFor="new-user-email">Email address</label>
@@ -75,14 +104,15 @@ export function CreateUserPage({
               disabled={submitting}
             />
             <p className="hint">
-              Select which folders this user can see, then create their account. They will receive a
-              temporary password by email.
+              {isSso
+                ? "Select which folders this user can see, then send activation. They will sign in with Microsoft Entra using this email — no temporary password is sent."
+                : "Select which folders this user can see, then create their account. They will receive a temporary password by email."}
             </p>
             <button
               type="submit"
               disabled={submitting || !newUserEmail.trim() || selectedFolders.size === 0}
             >
-              Create user
+              {isSso ? "Send user activation" : "Create user"}
             </button>
           </form>
           {error && <p className="message error">{error}</p>}

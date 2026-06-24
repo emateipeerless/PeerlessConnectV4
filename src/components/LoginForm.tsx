@@ -1,16 +1,21 @@
 import { FormEvent, useState } from "react";
+import { isSsoConfigured } from "../config/sso";
 import { BrandLogo } from "./BrandLogo";
 import { LoadingSpinner } from "./LoadingSpinner";
+import { MicrosoftLoginButton } from "./MicrosoftLoginButton";
 
 interface LoginFormProps {
   loading: boolean;
   error: string | null;
   onLogin: (username: string, password: string) => void;
+  ssoLoading?: boolean;
 }
 
-export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
+export function LoginForm({ loading, error, onLogin, ssoLoading }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const showSso = isSsoConfigured();
+  const busy = loading || Boolean(ssoLoading);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -23,7 +28,7 @@ export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
 
   return (
     <div className="login-page">
-      {loading && (
+      {busy && (
         <div className="login-overlay" aria-busy="true" aria-label="Signing in">
           <LoadingSpinner label="Signing in..." size="lg" />
         </div>
@@ -35,6 +40,15 @@ export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
           <p>Sign in to view your devices</p>
         </header>
 
+        {showSso && (
+          <>
+            <MicrosoftLoginButton disabled={busy} />
+            <div className="login-divider" role="separator">
+              <span>or use email and password</span>
+            </div>
+          </>
+        )}
+
         <form onSubmit={handleSubmit}>
           <label htmlFor="username">Username</label>
           <input
@@ -43,7 +57,7 @@ export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
             autoComplete="username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            disabled={loading}
+            disabled={busy}
           />
 
           <label htmlFor="password">Password</label>
@@ -53,10 +67,10 @@ export function LoginForm({ loading, error, onLogin }: LoginFormProps) {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            disabled={loading}
+            disabled={busy}
           />
 
-          <button type="submit" disabled={loading || !username.trim() || !password}>
+          <button type="submit" disabled={busy || !username.trim() || !password}>
             Sign in
           </button>
         </form>

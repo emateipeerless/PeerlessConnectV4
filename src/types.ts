@@ -12,8 +12,11 @@ export interface LoginResponse {
   authenticated: boolean;
   email?: string;
   needsOnboarding?: boolean;
+  firstLogin?: boolean;
   error?: string;
 }
+
+export type ProvisionUserType = "standard" | "sso";
 
 export interface UserViewResponse {
   username: string;

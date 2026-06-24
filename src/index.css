@@ -256,6 +256,92 @@ input {
   cursor: not-allowed;
 }
 
+.sso-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sso-button:hover:not(:disabled) {
+  background: var(--color-surface-raised);
+  border-color: var(--color-primary);
+}
+
+.sso-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sso-button__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.user-type-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-inset);
+  border: 1px solid var(--color-border);
+}
+
+.user-type-toggle button {
+  padding: 0.45rem 0.85rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.user-type-toggle button:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.user-type-toggle button.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.user-type-toggle button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .message {
   margin: 1rem 0 0;
   padding: 0.75rem;

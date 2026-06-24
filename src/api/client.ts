@@ -23,9 +23,12 @@ async function postJson<T>(url: string | undefined, body: unknown, label: string
   const data: unknown = await response.json().catch(() => {
     throw new Error("API returned a non-JSON response");
   });
-  const payload = parseBody<T & { error?: string }>(data);
+  const payload = parseBody<T & { error?: string; authenticated?: boolean }>(data);
   if (!response.ok) {
     throw new Error(payload.error ?? `Request failed (${response.status})`);
+  }
+  if (payload.authenticated === false) {
+    throw new Error(payload.error ?? "Request failed");
   }
   return payload;
 }
@@ -65,5 +68,27 @@ export async function completeOnboarding(payload: {
     import.meta.env.VITE_ONBOARDING_API_URL,
     payload,
     "VITE_ONBOARDING_API_URL",
+  );
+}
+
+export async function ssoLogin(payload: {
+  email: string;
+  userKey: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}) {
+  return postJson<LoginResponse>(
+    import.meta.env.VITE_SSO_LOGIN_API_URL,
+    payload,
+    "VITE_SSO_LOGIN_API_URL",
+  );
+}
+
+export async function createSsoUser(email: string, folderNames: string[]) {
+  return postJson<CreateUserResponse>(
+    import.meta.env.VITE_CREATE_SSO_USER_API_URL,
+    { email, folderNames },
+    "VITE_CREATE_SSO_USER_API_URL",
   );
 }

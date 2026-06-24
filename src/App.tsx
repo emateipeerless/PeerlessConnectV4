@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   completeOnboarding,
+  createSsoUser,
   createStandardUser,
   fetchUserView,
   login,
 } from "./api/client";
+import { SsoBackendLogin } from "./auth/SsoBackendLogin";
+import { isSsoConfigured } from "./config/sso";
 import { AppTopBar } from "./components/AppTopBar";
 import { CreateUserPage } from "./components/admin/CreateUserPage";
 import { CreatorLoginPage } from "./components/admin/CreatorLoginPage";
@@ -14,7 +17,7 @@ import { LoginForm } from "./components/LoginForm";
 import { OnboardingPage } from "./components/OnboardingPage";
 import { SidebarTree } from "./components/SidebarTree";
 import { useTheme } from "./theme/ThemeContext";
-import type { UserViewResponse } from "./types";
+import type { ProvisionUserType, UserViewResponse } from "./types";
 
 type AdminScreen = "login" | "create";
 
@@ -22,6 +25,7 @@ export default function App() {
   const [username, setUsername] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
   const [viewLoading, setViewLoading] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -42,6 +46,20 @@ export default function App() {
 
   const isMainApp = Boolean(username && !needsOnboarding);
   const { setCustomizationEnabled } = useTheme();
+
+  const handleSsoSuccess = useCallback((email: string) => {
+    setUsername(email);
+    setNeedsOnboarding(false);
+    setLoginError(null);
+  }, []);
+
+  const handleSsoError = useCallback((message: string) => {
+    setLoginError(message || null);
+  }, []);
+
+  const handleSsoLoadingChange = useCallback((loading: boolean) => {
+    setSsoLoading(loading);
+  }, []);
 
   useEffect(() => {
     setCustomizationEnabled(isMainApp);
@@ -195,18 +213,27 @@ export default function App() {
     }
   }
 
-  async function handleCreateUser(newUserEmail: string, folderNames: string[]) {
+  async function handleCreateUser(
+    newUserEmail: string,
+    folderNames: string[],
+    userType: ProvisionUserType,
+  ) {
     setAdminSubmitLoading(true);
     setAdminError(null);
     setAdminSuccess(null);
 
     try {
-      const result = await createStandardUser(newUserEmail, folderNames);
+      const result =
+        userType === "sso"
+          ? await createSsoUser(newUserEmail, folderNames)
+          : await createStandardUser(newUserEmail, folderNames);
       const folders = result.folderNames?.join(", ") ?? folderNames.join(", ");
       const emailNote =
-        result.emailSent === false
-          ? `User created for ${result.email}, but email was not sent (SEND_EMAIL=false).`
-          : `Invitation email sent to ${result.email}.`;
+        userType === "sso"
+          ? `SSO user provisioned for ${result.email}. They can sign in with Microsoft Entra.`
+          : result.emailSent === false
+            ? `User created for ${result.email}, but email was not sent (SEND_EMAIL=false).`
+            : `Invitation email sent to ${result.email}.`;
       setAdminSuccess(`${emailNote} Folders: ${folders}.`);
     } catch (err) {
       setAdminError(err instanceof Error ? err.message : "Failed to create user");
@@ -217,13 +244,25 @@ export default function App() {
 
   return (
     <>
-      {isMainApp && username && (
-        <AppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
+      {isSsoConfigured() && (
+        <SsoBackendLogin
+          username={username}
+          onSuccess={handleSsoSuccess}
+          onError={handleSsoError}
+          onLoadingChange={handleSsoLoadingChange}
+        />
+      )}
+
+      {isMainApp && username && (        <AppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
       )}
 
       {!username ? (
-        <LoginForm loading={loginLoading} error={loginError} onLogin={handleLogin} />
-      ) : needsOnboarding ? (
+        <LoginForm
+          loading={loginLoading}
+          error={loginError}
+          onLogin={handleLogin}
+          ssoLoading={ssoLoading}
+        />      ) : needsOnboarding ? (
         <OnboardingPage
           email={username}
           submitting={onboardingLoading}
@@ -235,8 +274,7 @@ export default function App() {
           <div className="app-body">
             <aside className="sidebar">
               <div className="sidebar-header">
-                <h2>Folder Structure</h2>
-                {viewData && <p className="meta">View {viewData.viewId}</p>}
+                <h2>Devices</h2>
               </div>
 
               {viewLoading && <LoadingSpinner label="Loading your folders..." />}
