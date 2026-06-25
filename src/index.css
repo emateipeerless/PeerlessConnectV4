@@ -1,3 +1,9 @@
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 :root {
   color: var(--color-text);
   background: var(--color-bg);
@@ -107,14 +113,14 @@ input {
 .brand-logo--topbar {
   height: 4.25rem;
   width: auto;
-  max-width: min(18rem, 42vw);
+  max-width: 18rem;
   flex-shrink: 0;
 }
 
 /* Red logo PNG has a taller canvas (418px vs 356px) — scale up to match white logo visual size */
 .brand-logo--topbar.brand-logo--theme-light {
   height: 5rem;
-  max-width: min(21rem, 48vw);
+  max-width: 21rem;
 }
 
 .theme-toggle {
@@ -462,6 +468,9 @@ input {
   display: grid;
   grid-template-columns: 320px 1fr;
   min-height: 0;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
 }
 
 .sidebar {
