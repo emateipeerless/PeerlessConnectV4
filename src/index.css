@@ -496,8 +496,8 @@ input {
 }
 
 .sidebar-tree .tree-children {
-  margin-left: 0.5rem;
-  padding-left: 1.5rem;
+  margin-left: 0.25rem;
+  padding-left: 0.75rem;
   border-left: 2px solid var(--color-border-strong);
 }
 
@@ -515,6 +515,10 @@ input {
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
+}
+
+.folder-row {
+  grid-template-columns: 1rem 1fr;
 }
 
 .tree-row:hover {
