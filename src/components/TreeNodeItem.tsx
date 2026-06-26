@@ -18,7 +18,7 @@ export function TreeNodeItem({
   const hasChildren = Boolean(node.children?.length);
   const isFolder = node.type === "folder";
   const nestedRowStyle: CSSProperties | undefined =
-    depth > 0 ? { paddingInlineStart: `${0.5 + depth * 1.25}rem` } : undefined;
+    depth > 0 ? { paddingInlineStart: `${0.25 + depth * 0.625}rem` } : undefined;
 
   if (isFolder) {
     return (
@@ -32,7 +32,6 @@ export function TreeNodeItem({
           aria-expanded={expanded}
         >
           <span className="chevron">{hasChildren ? (expanded ? "▾" : "▸") : "·"}</span>
-          <span className="icon">📁</span>
           <span className="label">{node.name}</span>
         </button>
         {hasChildren && expanded && (
