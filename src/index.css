@@ -782,7 +782,7 @@ input {
 
 .create-user-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) 320px;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(380px, 1.15fr);
   gap: 1rem;
   align-items: start;
 }
@@ -792,20 +792,27 @@ input {
 }
 
 .folder-row--checkbox {
-  grid-template-columns: auto 1rem 1.2rem 1fr auto;
+  grid-template-columns: auto 1fr;
 }
 
 .folder-expand {
   display: grid;
-  grid-template-columns: 1rem 1.2rem 1fr;
+  grid-template-columns: 1rem minmax(0, 1fr);
   align-items: center;
   gap: 0.45rem;
+  width: 100%;
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.folder-row--checkbox .label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .folder-checkbox {

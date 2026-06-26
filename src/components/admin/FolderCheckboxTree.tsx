@@ -32,7 +32,6 @@ function FolderCheckboxItem({ node, selectedFolders, onToggleFolder }: FolderChe
             aria-expanded={expanded}
           >
             <span className="chevron">{hasChildren ? (expanded ? "▾" : "▸") : "·"}</span>
-            <span className="icon">📁</span>
             <span className="label">{node.name}</span>
           </button>
         </div>
