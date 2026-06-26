@@ -19,6 +19,7 @@ export function SidebarTree({ tree, selectedDeviceId, onSelectDevice }: SidebarT
           <TreeNodeItem
             key={`${node.type}-${node.name}-${node.deviceId ?? "folder"}`}
             node={node}
+            depth={0}
             selectedDeviceId={selectedDeviceId}
             onSelectDevice={onSelectDevice}
           />

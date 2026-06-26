@@ -1,4 +1,5 @@
 import type { ControllerBlocks, NormalizedDeviceData, RegisterSnapshot } from '../types/devicePacket';
+import { normalizeServerTimestamp } from './formatTimestamp';
 import { JOCKEY_RTU_STATUS_REG } from './m3dRegisters';
 
 const RTU_COUNTER_KEYS = ['rhrs', 'stop', 'start', 'status', 'stcount'] as const;
@@ -25,7 +26,8 @@ function pickRegisters(src: Record<string, unknown> | undefined): Record<string,
 
 function pickTimestamp(src: Record<string, unknown> | undefined): string | null {
   const raw = src?.timestamp;
-  return typeof raw === 'string' && raw.length > 0 ? raw : null;
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  return normalizeServerTimestamp(raw);
 }
 
 function parseRegisterBlock(src: unknown): RegisterSnapshot {
