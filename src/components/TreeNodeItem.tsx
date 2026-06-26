@@ -1,16 +1,24 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { TreeNode } from "../types";
 
 interface TreeNodeItemProps {
   node: TreeNode;
+  depth: number;
   selectedDeviceId: number | null;
   onSelectDevice: (deviceId: number, name: string) => void;
 }
 
-export function TreeNodeItem({ node, selectedDeviceId, onSelectDevice }: TreeNodeItemProps) {
+export function TreeNodeItem({
+  node,
+  depth,
+  selectedDeviceId,
+  onSelectDevice,
+}: TreeNodeItemProps) {
   const [expanded, setExpanded] = useState(false);
   const hasChildren = Boolean(node.children?.length);
   const isFolder = node.type === "folder";
+  const nestedRowStyle: CSSProperties | undefined =
+    depth > 0 ? { paddingInlineStart: `${0.25 + depth * 0.625}rem` } : undefined;
 
   if (isFolder) {
     return (
@@ -18,11 +26,12 @@ export function TreeNodeItem({ node, selectedDeviceId, onSelectDevice }: TreeNod
         <button
           type="button"
           className="tree-row folder-row"
+          style={nestedRowStyle}
+          data-depth={depth}
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
         >
           <span className="chevron">{hasChildren ? (expanded ? "▾" : "▸") : "·"}</span>
-          <span className="icon">📁</span>
           <span className="label">{node.name}</span>
         </button>
         {hasChildren && expanded && (
@@ -31,6 +40,7 @@ export function TreeNodeItem({ node, selectedDeviceId, onSelectDevice }: TreeNod
               <TreeNodeItem
                 key={`${child.type}-${child.name}-${child.deviceId ?? "folder"}`}
                 node={child}
+                depth={depth + 1}
                 selectedDeviceId={selectedDeviceId}
                 onSelectDevice={onSelectDevice}
               />
@@ -48,6 +58,8 @@ export function TreeNodeItem({ node, selectedDeviceId, onSelectDevice }: TreeNod
       <button
         type="button"
         className={`tree-row device-row ${isSelected ? "selected" : ""}`}
+        style={nestedRowStyle}
+        data-depth={depth}
         onClick={() => onSelectDevice(node.deviceId!, node.name)}
       >
         <span className="chevron spacer" />

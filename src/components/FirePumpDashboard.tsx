@@ -8,6 +8,7 @@ import type {
   SwitchMode,
 } from '../types/m3d';
 import { CONTROLLER_OFFLINE_MESSAGE } from '../lib/controllerOffline';
+import { formatTimestamp } from '../lib/formatTimestamp';
 import { Lamp } from './StatusBadge';
 import { SwitchPositionDisplay } from './SwitchPositionDisplay';
 import type { DataTimestamps } from '../types/m3d';
@@ -250,13 +251,6 @@ function formatValue(value: number, decimals: number): string {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
-}
-
-function formatTimestamp(value: string | null): string {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
 }
 
 function DataTimestampPanel({

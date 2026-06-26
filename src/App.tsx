@@ -9,6 +9,7 @@ import {
 import { SsoBackendLogin } from "./auth/SsoBackendLogin";
 import { isSsoConfigured } from "./config/sso";
 import { AppTopBar } from "./components/AppTopBar";
+import { SsoAppTopBar } from "./components/SsoAppTopBar";
 import { CreateUserPage } from "./components/admin/CreateUserPage";
 import { CreatorLoginPage } from "./components/admin/CreatorLoginPage";
 import { DeviceView } from "./components/DeviceView";
@@ -253,7 +254,12 @@ export default function App() {
         />
       )}
 
-      {isMainApp && username && (        <AppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
+      {isMainApp && username && (
+        isSsoConfigured() ? (
+          <SsoAppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
+        ) : (
+          <AppTopBar username={username} onAdmin={openAdminPanel} onLogout={handleLogout} />
+        )
       )}
 
       {!username ? (
