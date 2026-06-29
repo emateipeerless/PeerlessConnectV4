@@ -1,4 +1,5 @@
 import type { CreateUserResponse, LoginResponse, UserViewResponse } from "../types";
+import type { AnalogScalesResponse, SaveAnalogScalesPayload } from "../types/analogScales";
 
 function parseBody<T>(data: unknown): T {
   if (!data || typeof data !== "object") {
@@ -90,5 +91,21 @@ export async function createSsoUser(email: string, folderNames: string[]) {
     import.meta.env.VITE_CREATE_SSO_USER_API_URL,
     { email, folderNames },
     "VITE_CREATE_SSO_USER_API_URL",
+  );
+}
+
+export async function fetchAnalogScales(deviceId: number) {
+  return postJson<AnalogScalesResponse>(
+    import.meta.env.VITE_GET_ANALOG_SCALES_API_URL,
+    { deviceId },
+    "VITE_GET_ANALOG_SCALES_API_URL",
+  );
+}
+
+export async function saveAnalogScales(payload: SaveAnalogScalesPayload) {
+  return postJson<AnalogScalesResponse>(
+    import.meta.env.VITE_SAVE_ANALOG_SCALES_API_URL,
+    payload,
+    "VITE_SAVE_ANALOG_SCALES_API_URL",
   );
 }

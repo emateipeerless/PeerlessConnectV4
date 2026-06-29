@@ -1,4 +1,4 @@
-import type { ControllerBlocks, NormalizedDeviceData, RegisterSnapshot } from '../types/devicePacket';
+import type { ControllerBlocks, NormalizedDeviceData, RegisterSnapshot, AdcSnapshot } from '../types/devicePacket';
 import { normalizeServerTimestamp } from './formatTimestamp';
 import { JOCKEY_RTU_STATUS_REG } from './m3dRegisters';
 
@@ -56,6 +56,31 @@ function isV2Packet(root: Record<string, unknown>): boolean {
   return Boolean(controllers && asRecord(controllers.main));
 }
 
+function parseAdcBlock(src: unknown): AdcSnapshot | null {
+  const block = asRecord(src);
+  if (!block) return null;
+
+  const channels: Record<string, number> = {};
+  const rawChannels = asRecord(block.channels);
+  if (rawChannels) {
+    for (const [key, value] of Object.entries(rawChannels)) {
+      if (!/^\d+$/.test(key)) continue;
+      const n = Number(value);
+      if (Number.isFinite(n)) channels[key] = n;
+    }
+  }
+
+  if (Object.keys(channels).length === 0 && block.rowFound !== true) {
+    return null;
+  }
+
+  return {
+    timestamp: pickTimestamp(block),
+    channels,
+    rowFound: block.rowFound === true,
+  };
+}
+
 function normalizeV2(root: Record<string, unknown>): NormalizedDeviceData {
   const controllers = asRecord(root.controllers)!;
   const main = asRecord(controllers.main)!;
@@ -75,6 +100,7 @@ function normalizeV2(root: Record<string, unknown>): NormalizedDeviceData {
       trending: parseRegisterBlock(jockey.trending),
       historical: parseRegisterBlock(jockey.historical),
     },
+    adc: parseAdcBlock(root.adc),
   };
 }
 
