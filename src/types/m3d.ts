@@ -34,6 +34,17 @@ export interface AnalogReading {
   decimals: number;
 }
 
+/** Hardware ADC channel with raw count and mA conversion. */
+export interface AdcInputReading {
+  id: string;
+  channel: number;
+  label: string;
+  rawValue: number;
+  milliamps: number;
+  /** Within standard 4–20 mA sensor operating span */
+  inSensorSpan: boolean;
+}
+
 export interface StatusItem {
   id: string;
   label: string;
@@ -109,7 +120,7 @@ export type MainControllerBadge = 'MK3D' | 'MK3E';
 
 export type ProfileDecodedSnapshot = Omit<
   FirePumpSnapshot,
-  'mainControllerOffline' | 'jockeyControllerOffline'
+  'mainControllerOffline' | 'jockeyControllerOffline' | 'adcInputs' | 'adcTimestamp'
 >;
 
 export interface FirePumpSnapshot {
@@ -130,4 +141,7 @@ export interface FirePumpSnapshot {
   jockeyControllerOffline: boolean;
   mainPump: MainPumpState;
   jockeyPump: JockeyPumpState;
+  /** Hardware ADC channels from datastorage.analoginputs (4–20 mA) */
+  adcInputs: AdcInputReading[];
+  adcTimestamp: string | null;
 }

@@ -1,6 +1,6 @@
 # Peerless Connect — System Overview
 
-This document describes how the **Peerless Connect** IoT fire pump monitoring platform works as implemented in this workspace. It covers the full path from the edge device through cloud storage to the React frontend, including all **seven** AWS Lambda functions and how they are wired together.
+This document describes how the **Peerless Connect** IoT fire pump monitoring platform works as implemented in this workspace. It covers the full path from the edge device through cloud storage to the React frontend, including all **nine** AWS Lambda functions and how they are wired together.
 
 ---
 
@@ -16,12 +16,13 @@ This document describes how the **Peerless Connect** IoT fire pump monitoring pl
 8. [Authentication & User Lifecycle](#authentication--user-lifecycle)
 9. [Device Navigation (Folder Tree)](#device-navigation-folder-tree)
 10. [Live Device Data Pipeline](#live-device-data-pipeline)
-11. [Controller Profiles & Register Decoding](#controller-profiles--register-decoding)
-12. [Dashboard UI](#dashboard-ui)
-13. [Offline Detection](#offline-detection)
-14. [Project Structure](#project-structure)
-15. [Running Locally](#running-locally)
-16. [Known Dependencies Outside This Repo](#known-dependencies-outside-this-repo)
+11. [Analog Input Scaling](#analog-input-scaling)
+12. [Controller Profiles & Register Decoding](#controller-profiles--register-decoding)
+13. [Dashboard UI](#dashboard-ui)
+14. [Offline Detection](#offline-detection)
+15. [Project Structure](#project-structure)
+16. [Running Locally](#running-locally)
+17. [Known Dependencies Outside This Repo](#known-dependencies-outside-this-repo)
 
 ---
 
@@ -50,7 +51,9 @@ This document describes how the **Peerless Connect** IoT fire pump monitoring pl
 │    ├── POST /completeonboarding    → CompleteUserOnboarding                  │
 │    ├── POST /createsso             → CreateSsoUser (SSO provisioning)        │
 │    ├── POST /ssologin              → SsoUserLogin (SSO sign-in completion)   │
-│    └── GET  /latest?deviceid=N     → GetLatestFrame                          │
+│    ├── GET  /latest?deviceid=N     → GetLatestFrame                          │
+│    ├── POST /getanalogscales       → GetAnalogScales                         │
+│    └── POST /saveanalogscales      → SaveAnalogScales                        │
 └────────────────────────┼────────────────────────────────────────────────────┘
                          ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -88,6 +91,16 @@ The Lambdas connect to a PostgreSQL/TimescaleDB instance on AWS. The schema is o
 |-------|---------|
 | `devicestorage.devices` | Maps `deviceid` → `mainid` and `jockeyid` (controller type IDs for main and jockey) |
 | `devicestorage.folders` | Nested-set model (`lft`/`rgt`) for folder hierarchy; `deviceid` NULL = folder, non-NULL = device leaf |
+| `devicestorage.analogscales` | Per-device analog input scaling: `deviceid`, `template`, and min/max ADC/value columns for channels 1–8 |
+
+**`devicestorage.analogscales` columns:**
+
+| Column pattern | Purpose |
+|----------------|---------|
+| `deviceid` | Primary key — one row per device |
+| `template` | Template ID integer |
+| `analog{N}adcmin`, `analog{N}adcmax` | ADC range for channel N (1–8) |
+| `analog{N}valuemin`, `analog{N}valuemax` | Engineering-unit range for channel N (1–8) |
 
 ### `datastorage` — time-series register data
 
@@ -304,6 +317,73 @@ SSO users never use `StandardUserLogin` or `CompleteUserOnboarding` — profile 
 
 ---
 
+### 8. `GetAnalogScales.py` — Load analog scaling configuration
+
+**API:** `POST /getanalogscales`  
+**Body:** `{ "deviceId": 123 }`
+
+**Purpose:** Returns the saved analog input scaling row from `devicestorage.analogscales` for a device. Used by the **Analog** tab on the device dashboard to populate Template ID and the ADC Min/Max / Value Min/Max fields.
+
+**Flow:**
+
+1. Parse `deviceId` from JSON body.
+2. `SELECT * FROM devicestorage.analogscales WHERE deviceid = %s`.
+3. Map DB columns to a JSON payload with `template` and an 8-element `channels` array.
+
+**Response (row found):**
+
+```json
+{
+  "success": true,
+  "deviceId": 123,
+  "found": true,
+  "template": 1,
+  "channels": [
+    { "adcMin": 0, "adcMax": 4095, "valueMin": 0, "valueMax": 100 }
+  ]
+}
+```
+
+If no row exists, returns `found: false` with `template: null` and empty channel values so the UI can show blank fields until the user saves.
+
+**Deploy note:** Package `GetAnalogScales.py` and `analog_scales_shared.py` in the same Lambda deployment artifact.
+
+**Environment variables:** `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, optional `ANALOG_SCALES_TABLE` (default `devicestorage.analogscales`), `CORS_ALLOW_ORIGIN`
+
+---
+
+### 9. `SaveAnalogScales.py` — Create or update analog scaling
+
+**API:** `POST /saveanalogscales`  
+**Body:**
+
+```json
+{
+  "deviceId": 123,
+  "template": 1,
+  "channels": [
+    { "adcMin": 0, "adcMax": 4095, "valueMin": 0, "valueMax": 100 }
+  ]
+}
+```
+
+(`channels` must contain exactly 8 entries, one per analog input.)
+
+**Purpose:** Persists scaling edits from the Analog tab. Updates the existing row for `deviceid`; if none exists, inserts a new row.
+
+**Flow:**
+
+1. Validate `deviceId`, `template`, and all 32 scaling integers (8 channels × 4 fields).
+2. `UPDATE devicestorage.analogscales SET ... WHERE deviceid = %s`.
+3. If no row was updated, `INSERT` a new row.
+4. Return the saved row in the same shape as `GetAnalogScales`.
+
+**Deploy note:** Package `SaveAnalogScales.py` and `analog_scales_shared.py` together.
+
+**Environment variables:** Same as `GetAnalogScales`.
+
+---
+
 ## API Gateway & Frontend Configuration
 
 The React app reads API endpoints from `connect-standard-frontend/.env`:
@@ -317,6 +397,8 @@ The React app reads API endpoints from `connect-standard-frontend/.env`:
 | `VITE_SSO_LOGIN_API_URL` | `SsoUserLogin` → `/ssologin` (when SSO enabled) |
 | `VITE_CREATE_SSO_USER_API_URL` | `CreateSsoUser` → `/createsso` (when SSO enabled) |
 | `VITE_PACKET_API_URL` | `GetLatestFrame` → `/latest?deviceid=...` |
+| `VITE_GET_ANALOG_SCALES_API_URL` | `GetAnalogScales` → `/getanalogscales` |
+| `VITE_SAVE_ANALOG_SCALES_API_URL` | `SaveAnalogScales` → `/saveanalogscales` |
 | `VITE_SSO_ENABLED` | `"true"` to show Microsoft sign-in and SSO admin toggle |
 | `VITE_AZURE_CLIENT_ID` | Entra app registration client ID |
 | `VITE_AZURE_TENANT_ID` | Entra tenant ID |
@@ -392,6 +474,8 @@ Thin wrapper around `fetch`:
 - `createStandardUser()` — admin standard user provisioning
 - `createSsoUser()` — admin SSO user provisioning (no email)
 - `completeOnboarding()` — first-time standard user profile
+- `fetchAnalogScales(deviceId)` — load analog scaling for Analog tab
+- `saveAnalogScales(payload)` — persist analog scaling edits
 
 Handles API Gateway responses that may wrap JSON in a `body` string field.
 
@@ -564,6 +648,46 @@ Known test devices in config: **123** (diesel/FCJC), **124** (electric/FTJP).
 
 ---
 
+## Analog Input Scaling
+
+The **Analog** tab on the device dashboard combines live ADC readings (from `GetLatestFrame` / `datastorage.analoginputs`) with per-device scaling configuration stored in `devicestorage.analogscales`.
+
+### User flow
+
+```
+User opens device → selects Analog tab
+       │
+       ▼
+GetAnalogScales (POST { deviceId })
+       │
+       ▼
+AdcInputsPanel populates Template ID + 8 rows of min/max fields
+       │
+       ▼
+User edits values → clicks Save
+       │
+       ▼
+SaveAnalogScales (POST { deviceId, template, channels[8] })
+       │
+       ▼
+Row updated (or inserted) in devicestorage.analogscales
+```
+
+### Frontend implementation
+
+| File | Role |
+|------|------|
+| `src/components/FirePumpDashboard.tsx` | `AdcInputsPanel` — loads scales on mount, saves on button click |
+| `src/components/DeviceView.tsx` | Passes `deviceId` into `FirePumpDashboard` |
+| `src/api/client.ts` | `fetchAnalogScales`, `saveAnalogScales` |
+| `src/types/analogScales.ts` | Request/response TypeScript types |
+
+**Live ADC column:** "Current ADC" shows raw values from the latest packet (`snapshot.adcInputs`). Scaling fields come from the database, not the packet.
+
+**Env vars:** Set `VITE_GET_ANALOG_SCALES_API_URL` and `VITE_SAVE_ANALOG_SCALES_API_URL` in `.env` after deploying the Lambdas to API Gateway.
+
+---
+
 ## Controller Profiles & Register Decoding
 
 Register mappings live in profile-specific files:
@@ -605,16 +729,21 @@ Registers are looked up from **trending first, then historical** (`getMergedRegi
 
 ## Dashboard UI
 
-`FirePumpDashboard` (`src/components/FirePumpDashboard.tsx`) renders two `PumpSection` blocks:
+`FirePumpDashboard` (`src/components/FirePumpDashboard.tsx`) uses a horizontal tab bar: **Summary**, **Main Pump**, **Jockey Pump**, and **Analog**.
 
-### Main Pump section
+### Analog tab
+- Template ID input and **Save** button (persists to `devicestorage.analogscales`).
+- Table of 8 analog inputs: live Current ADC plus editable ADC Min/Max and Value Min/Max.
+- Loads saved values when the tab mounts; shows loading/save status messages.
+
+### Main Pump tab (within tabbed layout)
 - Large **System Discharge Pressure** hero (red highlight on low pressure alarm).
 - Switch position panel (diesel only).
 - Analog panel ("Batteries" or "Electrical").
 - Alarm/status lamp grid with trouble count.
 - Historical metrics and event timestamps.
 
-### Jockey Pump section
+### Jockey Pump tab
 - Jockey discharge hero (or placeholder if register missing).
 - Switch position + operating stats (pressure settings, run hours, starts).
 - Status lamp panel.
@@ -641,6 +770,9 @@ This overlay appears per pump section (main and jockey independently). Only **tr
 6-23Progress/
 ├── Lambdas/
 │   ├── GetLatestFrame.py          # Latest register snapshot from TimescaleDB
+│   ├── GetAnalogScales.py         # Load analog scaling by deviceid
+│   ├── SaveAnalogScales.py        # Create/update analog scaling by deviceid
+│   ├── analog_scales_shared.py    # Shared column mapping (deploy with Get/Save)
 │   ├── StandardUserLogin.py       # bcrypt login
 │   ├── GetUserStruct.py           # Folder tree for sidebar
 │   ├── CreateStandardUser.py      # Admin user + SES email
@@ -705,4 +837,4 @@ This overlay appears per pump section (main and jockey independently). Only **tr
 
 ## Summary
 
-Peerless Connect is an end-to-end IoT monitoring solution for fire pump installations. Edge hardware reads Modbus registers from main and jockey pump controllers and publishes them over cellular MQTT. AWS stores time-series data in TimescaleDB. **Seven** Lambda functions expose login (standard and SSO), user management, folder navigation, and latest register snapshots through API Gateway. The React frontend authenticates users via password or Microsoft Entra SSO, shows a permission-scoped device tree, and renders a live-updating fire pump dashboard with profile-specific register decoding for MK3 Diesel/FCJC and MK3 Electric/FTJP configurations.
+Peerless Connect is an end-to-end IoT monitoring solution for fire pump installations. Edge hardware reads Modbus registers from main and jockey pump controllers and publishes them over cellular MQTT. AWS stores time-series data in TimescaleDB. **Nine** Lambda functions expose login (standard and SSO), user management, folder navigation, latest register snapshots, and analog input scaling through API Gateway. The React frontend authenticates users via password or Microsoft Entra SSO, shows a permission-scoped device tree, and renders a live-updating fire pump dashboard with profile-specific register decoding for MK3 Diesel/FCJC and MK3 Electric/FTJP configurations.
