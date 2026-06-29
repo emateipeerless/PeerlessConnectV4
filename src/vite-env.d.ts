@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_AZURE_REDIRECT_URI?: string;
   readonly VITE_SSO_LOGIN_API_URL?: string;
   readonly VITE_CREATE_SSO_USER_API_URL?: string;
+  readonly VITE_GET_ANALOG_SCALES_API_URL?: string;
+  readonly VITE_SAVE_ANALOG_SCALES_API_URL?: string;
 }
 
 interface ImportMeta {

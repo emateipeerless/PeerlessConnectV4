@@ -3,6 +3,7 @@ import { getProfileIdForDevice } from '../config/devices';
 import type { FirePumpSnapshot } from '../types/m3d';
 import type { NormalizedDeviceData } from '../types/devicePacket';
 import { isControllerOfflineFromTrending } from './controllerOffline';
+import { decodeAdcInputs } from './decodeAdc';
 import { decodeDieselFcjcPacket } from './profiles/dieselFcjc/decode';
 import { decodeElectricFtjpPacket } from './profiles/electricFtjp/decode';
 
@@ -28,6 +29,8 @@ export function decodeDevicePacket(
 
   return {
     ...snapshot,
+    adcInputs: decodeAdcInputs(data),
+    adcTimestamp: data.adc?.timestamp ?? null,
     mainControllerOffline: isControllerOfflineFromTrending(data.main),
     jockeyControllerOffline: isControllerOfflineFromTrending(data.jockey),
   };

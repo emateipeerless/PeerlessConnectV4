@@ -32,6 +32,7 @@ export function DeviceView({ deviceId, deviceName }: DeviceViewProps) {
 
       <ErrorBoundary>
         <FirePumpDashboard
+          deviceId={deviceId}
           snapshot={snapshot}
           lastRefresh={lastRefresh}
           isRefreshing={isRefreshing}
